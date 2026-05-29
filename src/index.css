@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* shadcn monochrome tokens */
+    --background: #fafafa;
+    --surface: #ffffff;
+    --border: #e4e4e7;
+    --text: #111827;
+    --text-muted: #6b7280;
+    --text-subtle: #9ca3af;
+    --primary: #181818;
+    --primary-soft: #181818;
+    /* status tokens — use sparingly */
+    --success: #16a34a;
+    --warning: #d97706;
+    --danger: #dc2626;
+    --radius: 0.5rem;
+  }
+
+  html {
+    font-family: 'Geist', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color: var(--text);
+    background: var(--background);
+  }
+
+  body {
+    margin: 0;
+  }
+
+  /* Range sliders */
+  input[type='range'] {
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    height: 10px;
+    border-radius: 999px;
+  }
+
+  input[type='range']::-webkit-slider-runnable-track {
+    height: 10px;
+    border-radius: 999px;
+    background: transparent;
+  }
+
+  input[type='range']::-moz-range-track {
+    height: 10px;
+    border-radius: 999px;
+    background: #e4e4e7;
+  }
+
+  input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: white;
+    border: 1.5px solid currentColor;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    margin-top: -1px;
+    transition: box-shadow 0.15s;
+  }
+
+  input[type='range']::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid currentColor;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  input[type='range']:focus::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+  }
+
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+}
