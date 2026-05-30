@@ -459,7 +459,7 @@ export default function InputPanel({ inputs, spendPct, savePct, onIncomeChange, 
 
       {/* Section: Income anchor */}
       <div>
-        <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Your Monthly Income</h3>
+        <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Your Monthly Take-Home</h3>
         <div className="flex items-center gap-2">
           <span className="text-2xl font-bold text-zinc-500">₹</span>
           <FormattedInput
