@@ -27,16 +27,19 @@ export default function LifeEventsPanel({ selected, onToggle, lifeEventImpact }:
               key={event.id}
               type="button"
               onClick={() => onToggle(event.id)}
-              className={`text-left p-3 rounded-lg border transition-all duration-150 ${
+              className={`text-left p-3 rounded-lg border-2 transition-all duration-150 relative ${
                 isSelected
-                  ? 'border-[#181818] bg-zinc-50'
+                  ? 'border-[#181818] bg-[#181818]/5'
                   : 'border-zinc-200 bg-white hover:border-zinc-400'
               }`}
             >
+              {isSelected && (
+                <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#181818] flex items-center justify-center text-white text-[10px] font-bold">✓</span>
+              )}
               <div className="flex items-start gap-2">
                 <span className="text-lg leading-none mt-0.5">{event.icon}</span>
-                <div className="min-w-0">
-                  <div className={`text-sm font-medium leading-tight ${isSelected ? 'text-[#181818]' : 'text-zinc-700'}`}>
+                <div className="min-w-0 pr-5">
+                  <div className={`text-sm font-semibold leading-tight ${isSelected ? 'text-[#181818]' : 'text-zinc-700'}`}>
                     {event.label}
                   </div>
                   <div className="text-xs text-zinc-400 mt-0.5 leading-snug">{event.costLabel}</div>
