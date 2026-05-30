@@ -183,16 +183,18 @@ export default function DeepDiveSection({ scenarios, outputs, inputs }: Props) {
   return (
     <div className="space-y-6">
 
-      {/* Scenario cards: always visible */}
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400 mb-3">Withdrawal Scenarios</p>
-        <div className="flex gap-3 overflow-x-auto pb-1">
+      {/* Scenario section: card wrapper */}
+      <div className="bg-white rounded-xl border border-zinc-200 p-5">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400 mb-1">How Much Can You Withdraw?</p>
+        <p className="text-xs text-zinc-400 mb-4">Three ways to use your savings in retirement. Each gives you a different income and lasts a different amount of time.</p>
+        <div className="divide-y divide-zinc-200">
           {scenarios.map((scenario, i) => (
             <ScenarioCard
               key={scenario.swr}
               scenario={scenario}
               label={SCENARIO_LABELS[i]}
               isRecommended={i === 1}
+              expectedLifespan={inputs.expectedLifespan}
             />
           ))}
         </div>

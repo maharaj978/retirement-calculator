@@ -68,18 +68,29 @@ function FormattedInput({
   className?: string
   placeholder?: string
 }) {
+  const [localVal, setLocalVal] = useState('')
   const [focused, setFocused] = useState(false)
+
   return (
     <input
-      type={focused ? 'number' : 'text'}
-      value={focused ? value : toIndianLocale(value)}
+      type={focused ? 'text' : 'text'}
+      inputMode="numeric"
+      value={focused ? localVal : toIndianLocale(value)}
       step={step}
       placeholder={placeholder}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-      onChange={(e) => {
-        const v = parseFloat(e.target.value.replace(/,/g, ''))
-        if (!isNaN(v) && v >= 0) onChange(v)
+      onFocus={() => {
+        // Show raw number when editing so backspace works freely
+        setLocalVal(value === 0 ? '' : String(value))
+        setFocused(true)
+      }}
+      onBlur={() => {
+        setFocused(false)
+        const v = parseFloat(localVal.replace(/,/g, ''))
+        onChange(isNaN(v) || v < 0 ? 0 : v)
+      }}
+      onChange={(e) => setLocalVal(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
       }}
       className={className}
     />
@@ -247,7 +258,7 @@ interface AssumptionFieldProps {
   hint: { text: string; level: HintLevel }
 }
 
-function AssumptionField({ label, tooltip, value, min, max, step, onChange, hint }: AssumptionFieldProps) {
+function AssumptionField({ value, min, max, step, onChange }: AssumptionFieldProps) {
   const [localVal, setLocalVal] = useState(() => parseFloat((value * 100).toFixed(1)).toString())
   const [focused, setFocused] = useState(false)
 
@@ -260,11 +271,7 @@ function AssumptionField({ label, tooltip, value, min, max, step, onChange, hint
   }
 
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center gap-1">
-        <label className="text-sm font-medium text-zinc-600">{label}</label>
-        <Tooltip text={tooltip} />
-      </div>
+    <div className="flex flex-col items-end gap-1">
       <div className="flex items-center gap-2">
         <input
           type="text"
@@ -304,9 +311,7 @@ function AssumptionField({ label, tooltip, value, min, max, step, onChange, hint
           className="w-20 border border-zinc-200 rounded-lg px-3 py-2 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#181818] focus:border-transparent tabular-nums"
         />
         <span className="text-zinc-400 text-sm">%</span>
-        <span className="text-xs text-zinc-400">{min}–{max}%</span>
       </div>
-      {hint.text && <HintLine text={hint.text} level={hint.level} />}
     </div>
   )
 }
@@ -332,26 +337,30 @@ export default function InputPanel({ inputs, spendPct, savePct, onIncomeChange, 
   const advancedFields = [
     {
       field: 'preRetirementReturn' as keyof CalculatorInputs,
-      label: 'Expected Investment Return',
+      label: 'Investment Return',
+      sublabel: 'How much your money grows per year while you\'re still working. Indian equity mutual funds average around 12% over the long term.',
       tooltip: 'Annual return on your investments before retirement. 12% is a reasonable long-term average for Indian equity mutual funds. Use 8–9% if you prefer a conservative estimate.',
       min: 4, max: 20, step: 1,
     },
     {
       field: 'postRetirementReturn' as keyof CalculatorInputs,
-      label: 'Return After Retirement',
-      tooltip: 'Expected annual return on your savings after you retire. Lower than pre-retirement because you\'ll likely move to safer, balanced funds. 7–8% is typical for a conservative portfolio.',
+      label: 'Return After Retiring',
+      sublabel: 'Once retired, you\'ll likely move to safer investments. They grow slower but are more stable. 7–8% is typical.',
+      tooltip: 'Expected annual return on your savings after you retire. Lower than pre-retirement because you\'ll likely move to safer, balanced funds.',
       min: 3, max: 15, step: 1,
     },
     {
       field: 'inflationRate' as keyof CalculatorInputs,
       label: 'Inflation Rate',
-      tooltip: 'How fast prices rise every year. India\'s long-term average is ~6%. Your ₹50K/month lifestyle today costs ₹90K/month in 10 years at 6% inflation.',
+      sublabel: 'How fast prices rise every year. At 6%, something that costs ₹100 today will cost ₹179 in 10 years.',
+      tooltip: 'India\'s long-term average is ~6%. This is why you need more money in retirement than you spend today.',
       min: 3, max: 12, step: 1,
     },
     {
       field: 'withdrawalRate' as keyof CalculatorInputs,
-      label: 'Annual Withdrawal Rate',
-      tooltip: 'What % of your retirement savings you withdraw each year. The 4% rule: backed by 75+ years of market data: has historically never depleted a portfolio over 30 years. Go lower for longer retirement horizons.',
+      label: 'Yearly Withdrawal',
+      sublabel: 'What % of your savings you spend each year in retirement. 4% is the globally accepted safe amount that typically never runs out.',
+      tooltip: 'The 4% rule: backed by 75+ years of market data: has historically never depleted a portfolio over 30 years. Go lower for longer retirement horizons.',
       min: 2, max: 10, step: 0.5,
     },
   ]
@@ -573,23 +582,33 @@ export default function InputPanel({ inputs, spendPct, savePct, onIncomeChange, 
 
       {/* Assumptions */}
       <div className="border-t border-zinc-100 pt-5">
-        <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4">Assumptions</h3>
-        <div className="space-y-5">
-          {advancedFields.map(({ field, label, tooltip, min, max, step }) => {
+        <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">Assumptions</h3>
+        <p className="text-xs text-zinc-400 mb-4">These are pre-filled with sensible defaults. Change them only if you have a reason to.</p>
+        <div className="divide-y divide-zinc-100">
+          {advancedFields.map(({ field, label, sublabel, min, max, step }) => {
             const rawVal = inputs[field] as number
             const hint = advancedFieldHint(field as string, rawVal, inputs)
             return (
-              <AssumptionField
-                key={field}
-                label={label}
-                tooltip={tooltip}
-                value={rawVal}
-                min={min}
-                max={max}
-                step={step}
-                onChange={(v) => onFieldChange(field, v)}
-                hint={hint}
-              />
+              <div key={field} className="flex items-start justify-between gap-4 py-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-sm font-medium text-zinc-700">{label}</span>
+                    <span className="text-[10px] text-zinc-400">{min}–{max}%</span>
+                  </div>
+                  <p className="text-xs text-zinc-400 leading-relaxed">{sublabel}</p>
+                  {hint.text && <HintLine text={hint.text} level={hint.level} />}
+                </div>
+                <AssumptionField
+                  label=""
+                  tooltip=""
+                  value={rawVal}
+                  min={min}
+                  max={max}
+                  step={step}
+                  onChange={(v) => onFieldChange(field, v)}
+                  hint={{ text: '', level: 'gray' }}
+                />
+              </div>
             )
           })}
         </div>
