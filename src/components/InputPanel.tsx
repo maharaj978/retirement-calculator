@@ -137,11 +137,8 @@ function SliderRow({ label, accentColor, dotColor, pct, amount, onChange, toolti
           onChange={(e) => onChange(Number(e.target.value))}
           className="w-full relative z-10"
           style={{
-            accentColor,
-            color: accentColor,
-            background: `linear-gradient(to right, ${accentColor} 0%, ${accentColor} ${pct}%, #f4f4f5 ${pct}%, #f4f4f5 100%)`,
-            borderRadius: '999px',
-          }}
+            accentColor, color: accentColor, '--sp': `${pct}%`,
+          } as React.CSSProperties}
         />
       </div>
       <HintLine text={hint.text} level={hint.level} />
@@ -394,9 +391,9 @@ export default function InputPanel({ inputs, spendPct, savePct, mode, onIncomeCh
               }}
               className="w-full"
               style={{
-                background: `linear-gradient(to right, #181818 0%, #181818 ${(((inputs.currentAge - 18) / (70 - 18)) * 100) * 100}%, #f4f4f5 ${(((inputs.currentAge - 18) / (70 - 18)) * 100) * 100}%, #f4f4f5 100%)`,
+                '--sp': `${((inputs.currentAge - 18) / (70 - 18)) * 100}%`, color: '#181818',
                 borderRadius: '999px',
-              }}
+              } as React.CSSProperties}
             />
             <div className="flex justify-between text-[10px] text-zinc-300">
               <span>18</span><span>70</span>
@@ -422,9 +419,9 @@ export default function InputPanel({ inputs, spendPct, savePct, mode, onIncomeCh
                 onChange={(e) => onFieldChange('retirementAge', parseInt(e.target.value))}
                 className="w-full"
                 style={{
-                  background: `linear-gradient(to right, #181818 0%, #181818 ${(((inputs.retirementAge - (inputs.currentAge + 5)) / (75 - (inputs.currentAge + 5))) * 100) * 100}%, #f4f4f5 ${(((inputs.retirementAge - (inputs.currentAge + 5)) / (75 - (inputs.currentAge + 5))) * 100) * 100}%, #f4f4f5 100%)`,
+                  '--sp': `${((inputs.retirementAge - (inputs.currentAge + 5)) / (75 - (inputs.currentAge + 5))) * 100}%`, color: '#181818',
                   borderRadius: '999px',
-                }}
+                } as React.CSSProperties}
               />
               <div className="flex justify-between text-[10px] text-zinc-300">
                 <span>{inputs.currentAge + 5}</span><span>75</span>
@@ -457,9 +454,9 @@ export default function InputPanel({ inputs, spendPct, savePct, mode, onIncomeCh
               }}
               className="w-full"
               style={{
-                background: `linear-gradient(to right, #181818 0%, #181818 ${(((inputs.expectedLifespan - 65) / (100 - 65)) * 100) * 100}%, #f4f4f5 ${(((inputs.expectedLifespan - 65) / (100 - 65)) * 100) * 100}%, #f4f4f5 100%)`,
+                '--sp': `${((inputs.expectedLifespan - 65) / (100 - 65)) * 100}%`, color: '#181818',
                 borderRadius: '999px',
-              }}
+              } as React.CSSProperties}
             />
             <div className="flex justify-between text-[10px] text-zinc-400">
               <span>65</span><span>100</span>

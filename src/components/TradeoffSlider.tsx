@@ -128,9 +128,9 @@ export default function TradeoffSlider({
           onChange={(e) => setSliderIdx(Number(e.target.value))}
           className="w-full"
           style={{
-            background: `linear-gradient(to right, #181818 0%, #181818 ${((sliderIdx / (SIP_STEPS.length - 1)) * 100) * 100}%, #f4f4f5 ${((sliderIdx / (SIP_STEPS.length - 1)) * 100) * 100}%, #f4f4f5 100%)`,
+            '--sp': `${(sliderIdx / (SIP_STEPS.length - 1)) * 100}%`, color: '#181818',
             borderRadius: '999px',
-          }}
+          } as React.CSSProperties}
         />
         {/* Milestone labels */}
         <div className="relative mt-1.5 h-4">

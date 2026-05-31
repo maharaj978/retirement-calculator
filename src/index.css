@@ -39,12 +39,20 @@
     cursor: pointer;
     height: 10px;
     border-radius: 999px;
+    background: transparent; /* never paint the element itself */
   }
 
   input[type='range']::-webkit-slider-runnable-track {
     height: 10px;
     border-radius: 999px;
-    background: transparent;
+    /* gradient painted via JS: inline style sets --sp (fill %) and color via accentColor */
+    background: linear-gradient(
+      to right,
+      currentColor 0%,
+      currentColor var(--sp, 50%),
+      #f4f4f5 var(--sp, 50%),
+      #f4f4f5 100%
+    );
   }
 
   input[type='range']::-moz-range-track {
