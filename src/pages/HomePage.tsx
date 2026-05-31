@@ -24,6 +24,7 @@ import LifeEventsPanel from '../components/LifeEventsPanel'
 import RetirementSnapshot from '../components/RetirementSnapshot'
 import DeepDiveSection from '../components/DeepDiveSection'
 import ShareCard from '../components/ShareCard'
+import TradeoffSlider from '../components/TradeoffSlider'
 import { trackCalculation, trackModeSwitch, trackLifeEventToggled, trackCityChanged, trackShareClicked } from '../lib/analytics'
 
 export default function HomePage() {
@@ -211,6 +212,18 @@ export default function HomePage() {
           <RetirementSnapshot outputs={outputs} inputs={inputs} mode={mode} />
 
           <DeepDiveSection scenarios={outputs.scenarios} outputs={outputs} inputs={inputs} />
+
+          {/* SIP What-If card — only in goal mode when there's a gap */}
+          {mode === 'goal' && outputs.projectedCorpus < outputs.requiredCorpus && (
+            <TradeoffSlider
+              requiredCorpus={outputs.requiredCorpus}
+              currentAge={inputs.currentAge}
+              retirementAge={inputs.retirementAge}
+              currentSavings={inputs.currentSavings}
+              epfBalance={inputs.epfBalance}
+              preRetirementReturn={inputs.preRetirementReturn}
+            />
+          )}
 
           {/* Share button — below the charts */}
           <button

@@ -332,6 +332,8 @@ export default function RetirementSnapshot({ outputs, inputs, mode }: Props) {
         </div>
       </div>
 
+      {/* Tradeoff slider: only in goal mode when there's a gap and onTrackAge is known */}
+
     </div>
   )
 }
