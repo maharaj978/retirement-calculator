@@ -6,6 +6,7 @@ interface Props {
   retirementAge: number
   currentSavings: number
   epfBalance: number
+  currentMonthlySIP: number
   preRetirementReturn: number
 }
 
@@ -51,7 +52,7 @@ const MILESTONES = [
 
 export default function TradeoffSlider({
   requiredCorpus, currentAge, retirementAge,
-  currentSavings, epfBalance, preRetirementReturn,
+  currentSavings, epfBalance, currentMonthlySIP, preRetirementReturn,
 }: Props) {
   const [sliderIdx, setSliderIdx] = useState(0)
 
@@ -61,12 +62,15 @@ export default function TradeoffSlider({
   const yearsToPlanned = retirementAge - currentAge
 
   // Corpus breakdown at planned retirement age
+  // existingGrown includes the user's current ongoing SIP so numbers match the main card
   const existingGrown = existingCorpus * Math.pow(1 + preRetirementReturn, yearsToPlanned)
+    + sipFV(currentMonthlySIP, mr, yearsToPlanned)
   const sipGrown = sipFV(sipAmount, mr, yearsToPlanned)
   const corpusAtPlannedAge = existingGrown + sipGrown
 
-  // Years to hit goal with this SIP
-  const yearsNeeded = yearsToGoal(sipAmount, requiredCorpus, existingCorpus, preRetirementReturn)
+  // Years to hit goal: current SIP already running + new SIP from slider
+  const totalMonthly = currentMonthlySIP + sipAmount
+  const yearsNeeded = yearsToGoal(totalMonthly, requiredCorpus, existingCorpus, preRetirementReturn)
   const retireAtAge = yearsNeeded !== null ? currentAge + yearsNeeded : null
   const isBeforeTarget = retireAtAge !== null && retireAtAge <= retirementAge
   const isAfterTarget = retireAtAge !== null && retireAtAge > retirementAge
@@ -93,23 +97,19 @@ export default function TradeoffSlider({
       </div>
 
       {/* Baseline — existing savings alone */}
-      {existingCorpus > 0 && (
-        <div className="px-3 py-2.5 bg-zinc-50 rounded-lg border border-zinc-100">
-          <p className="text-xs text-zinc-500 leading-relaxed">
-            Your existing savings of{' '}
-            <span className="font-semibold text-[#181818]">{formatRs(existingCorpus)}</span>{' '}
-            will grow to{' '}
-            <span className="font-semibold text-[#181818]">{formatRs(existingGrown)}</span>{' '}
-            by age {retirementAge} on their own — without any SIP.
-            {existingGrown < requiredCorpus && (
-              <> That's still <span className="font-semibold text-[#dc2626]">{formatRs(requiredCorpus - existingGrown)} short</span>. Drag below to fill the gap.</>
-            )}
-            {existingGrown >= requiredCorpus && (
-              <> <span className="font-semibold text-[#16a34a]">That already covers your goal!</span></>
-            )}
-          </p>
-        </div>
-      )}
+      <div className="px-3 py-2.5 bg-zinc-50 rounded-lg border border-zinc-100">
+        <p className="text-xs text-zinc-500 leading-relaxed">
+          Your current plan (savings + ongoing SIP) is projected to reach{' '}
+          <span className="font-semibold text-[#181818]">{formatRs(existingGrown)}</span>{' '}
+          by age {retirementAge}.
+          {existingGrown < requiredCorpus && (
+            <> That's <span className="font-semibold text-[#dc2626]">{formatRs(requiredCorpus - existingGrown)} short</span> of your goal. Drag to see what extra savings can do.</>
+          )}
+          {existingGrown >= requiredCorpus && (
+            <> <span className="font-semibold text-[#16a34a]">That already covers your goal!</span></>
+          )}
+        </p>
+      </div>
 
       {/* Slider */}
       <div>
@@ -222,30 +222,36 @@ export default function TradeoffSlider({
             {/* Plain English */}
             <p className="text-xs text-zinc-600 leading-relaxed pt-2 border-t border-zinc-200">
               {sipAmount === 0 && (
-                existingCorpus > 0
-                  ? <>Without a SIP, your savings alone won't close the gap. Drag the slider to see how even <span className="font-semibold text-[#181818]">₹2,000/month</span> changes things.</>
-                  : <>No existing savings, no SIP. Start anywhere — even small amounts compound significantly. Drag the slider to see.</>
+                <>
+                  Your current plan gets you to <span className="font-semibold text-[#181818]">{formatRs(corpusAtPlannedAge)}</span> by age {retirementAge}.
+                  {corpusAtPlannedAge < requiredCorpus && (
+                    <> Drag the slider to see how adding extra monthly savings closes the gap.</>
+                  )}
+                  {corpusAtPlannedAge >= requiredCorpus && (
+                    <span className="text-[#16a34a] font-semibold"> You're already on track!</span>
+                  )}
+                </>
               )}
               {sipAmount > 0 && isBeforeTarget && retireAtAge !== null && (
                 <>
-                  A <span className="font-semibold text-[#181818]">{formatMonthly(sipAmount)}/month</span> SIP gets you to{' '}
+                  Adding <span className="font-semibold text-[#181818]">{formatMonthly(sipAmount)}/month</span> gets you to{' '}
                   <span className="font-semibold text-[#16a34a]">{formatRs(corpusAtPlannedAge)}</span> by age {retirementAge} —
-                  your goal is covered {retirementAge - retireAtAge} years early.
+                  your goal is covered {retirementAge - retireAtAge} year{retirementAge - retireAtAge !== 1 ? 's' : ''} early.
                   Every rupee you invest today becomes ₹{compoundMultiplier.toFixed(0)} by then.
                 </>
               )}
               {sipAmount > 0 && isAfterTarget && retireAtAge !== null && (
                 <>
-                  A <span className="font-semibold text-[#181818]">{formatMonthly(sipAmount)}/month</span> SIP
+                  Adding <span className="font-semibold text-[#181818]">{formatMonthly(sipAmount)}/month</span>{' '}
                   gets you to <span className="font-semibold text-[#181818]">{formatRs(corpusAtPlannedAge)}</span> by age {retirementAge} —
                   still <span className="font-semibold text-[#dc2626]">{formatRs(requiredCorpus - corpusAtPlannedAge)} short</span>.
-                  You'd hit the goal at age {retireAtAge}. Increase the SIP to retire at {retirementAge}.
+                  You'd hit the goal at age {retireAtAge}. Add more to retire at {retirementAge}.
                 </>
               )}
               {sipAmount > 0 && retireAtAge === null && (
                 <>
-                  At <span className="font-semibold text-[#181818]">{formatMonthly(sipAmount)}/month</span>,
-                  you'd have <span className="font-semibold text-[#181818]">{formatRs(corpusAtPlannedAge)}</span> by age {retirementAge} —
+                  Adding <span className="font-semibold text-[#181818]">{formatMonthly(sipAmount)}/month</span>{' '}
+                  gets you to <span className="font-semibold text-[#181818]">{formatRs(corpusAtPlannedAge)}</span> by age {retirementAge} —
                   not quite enough. Slide higher to close the gap.
                 </>
               )}

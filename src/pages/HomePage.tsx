@@ -221,6 +221,7 @@ export default function HomePage() {
               retirementAge={inputs.retirementAge}
               currentSavings={inputs.currentSavings}
               epfBalance={inputs.epfBalance}
+              currentMonthlySIP={inputs.monthlySIP}
               preRetirementReturn={inputs.preRetirementReturn}
             />
           )}
