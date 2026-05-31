@@ -128,8 +128,7 @@ export default function TradeoffSlider({
           onChange={(e) => setSliderIdx(Number(e.target.value))}
           className="w-full"
           style={{
-            accentColor: '#181818',
-            background: `linear-gradient(to right, #181818 0%, #181818 ${(sliderIdx / (SIP_STEPS.length - 1)) * 100}%, #f4f4f5 ${(sliderIdx / (SIP_STEPS.length - 1)) * 100}%, #f4f4f5 100%)`,
+            background: `linear-gradient(to right, #181818 0%, #181818 ${((sliderIdx / (SIP_STEPS.length - 1)) * 100) * 100}%, #f4f4f5 ${((sliderIdx / (SIP_STEPS.length - 1)) * 100) * 100}%, #f4f4f5 100%)`,
             borderRadius: '999px',
           }}
         />

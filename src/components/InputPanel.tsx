@@ -394,8 +394,7 @@ export default function InputPanel({ inputs, spendPct, savePct, mode, onIncomeCh
               }}
               className="w-full"
               style={{
-                accentColor: '#181818',
-                background: `linear-gradient(to right, #181818 0%, #181818 ${((inputs.currentAge - 18) / (70 - 18)) * 100}%, #f4f4f5 ${((inputs.currentAge - 18) / (70 - 18)) * 100}%, #f4f4f5 100%)`,
+                background: `linear-gradient(to right, #181818 0%, #181818 ${(((inputs.currentAge - 18) / (70 - 18)) * 100) * 100}%, #f4f4f5 ${(((inputs.currentAge - 18) / (70 - 18)) * 100) * 100}%, #f4f4f5 100%)`,
                 borderRadius: '999px',
               }}
             />
@@ -423,8 +422,7 @@ export default function InputPanel({ inputs, spendPct, savePct, mode, onIncomeCh
                 onChange={(e) => onFieldChange('retirementAge', parseInt(e.target.value))}
                 className="w-full"
                 style={{
-                  accentColor: '#181818',
-                  background: `linear-gradient(to right, #181818 0%, #181818 ${((inputs.retirementAge - (inputs.currentAge + 5)) / (75 - (inputs.currentAge + 5))) * 100}%, #f4f4f5 ${((inputs.retirementAge - (inputs.currentAge + 5)) / (75 - (inputs.currentAge + 5))) * 100}%, #f4f4f5 100%)`,
+                  background: `linear-gradient(to right, #181818 0%, #181818 ${(((inputs.retirementAge - (inputs.currentAge + 5)) / (75 - (inputs.currentAge + 5))) * 100) * 100}%, #f4f4f5 ${(((inputs.retirementAge - (inputs.currentAge + 5)) / (75 - (inputs.currentAge + 5))) * 100) * 100}%, #f4f4f5 100%)`,
                   borderRadius: '999px',
                 }}
               />
@@ -459,8 +457,7 @@ export default function InputPanel({ inputs, spendPct, savePct, mode, onIncomeCh
               }}
               className="w-full"
               style={{
-                accentColor: '#181818',
-                background: `linear-gradient(to right, #181818 0%, #181818 ${((inputs.expectedLifespan - 65) / (100 - 65)) * 100}%, #f4f4f5 ${((inputs.expectedLifespan - 65) / (100 - 65)) * 100}%, #f4f4f5 100%)`,
+                background: `linear-gradient(to right, #181818 0%, #181818 ${(((inputs.expectedLifespan - 65) / (100 - 65)) * 100) * 100}%, #f4f4f5 ${(((inputs.expectedLifespan - 65) / (100 - 65)) * 100) * 100}%, #f4f4f5 100%)`,
                 borderRadius: '999px',
               }}
             />
