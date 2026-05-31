@@ -6,6 +6,7 @@ interface Props {
   inputs: CalculatorInputs
   spendPct: number
   savePct: number
+  mode: 'goal' | 'reverse'
   onIncomeChange: (value: number) => void
   onSpendPctChange: (pct: number) => void
   onSavePctChange: (pct: number) => void
@@ -316,7 +317,7 @@ function AssumptionField({ value, min, max, step, onChange }: AssumptionFieldPro
   )
 }
 
-export default function InputPanel({ inputs, spendPct, savePct, onIncomeChange, onSpendPctChange, onSavePctChange, onFieldChange }: Props) {
+export default function InputPanel({ inputs, spendPct, savePct, mode, onIncomeChange, onSpendPctChange, onSavePctChange, onFieldChange }: Props) {
   const leftoverPct = 100 - spendPct - savePct
   const isOverAllocated = leftoverPct < 0
 
@@ -403,34 +404,41 @@ export default function InputPanel({ inputs, spendPct, savePct, onIncomeChange, 
             </div>
           </div>
 
-          {/* Retire At slider */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1">
-                <label className="text-sm font-medium text-zinc-600">Retire At</label>
-                <Tooltip text="The age at which you want to stop working full-time." />
+          {/* Retire At slider — hidden in reverse mode */}
+          {mode === 'goal' ? (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  <label className="text-sm font-medium text-zinc-600">Retire At</label>
+                  <Tooltip text="The age at which you want to stop working full-time." />
+                </div>
+                <span className="text-sm font-bold text-[#181818]">{inputs.retirementAge} yrs</span>
               </div>
-              <span className="text-sm font-bold text-[#181818]">{inputs.retirementAge} yrs</span>
+              <input
+                type="range"
+                min={Math.min(inputs.currentAge + 5, 75)}
+                max={75}
+                step={1}
+                value={inputs.retirementAge}
+                onChange={(e) => onFieldChange('retirementAge', parseInt(e.target.value))}
+                className="w-full"
+                style={{
+                  accentColor: '#181818',
+                  background: `linear-gradient(to right, #181818 0%, #181818 ${((inputs.retirementAge - (inputs.currentAge + 5)) / (75 - (inputs.currentAge + 5))) * 100}%, #f4f4f5 ${((inputs.retirementAge - (inputs.currentAge + 5)) / (75 - (inputs.currentAge + 5))) * 100}%, #f4f4f5 100%)`,
+                  borderRadius: '999px',
+                }}
+              />
+              <div className="flex justify-between text-[10px] text-zinc-300">
+                <span>{inputs.currentAge + 5}</span><span>75</span>
+              </div>
+              <HintLine {...retirementAgeHint(inputs.currentAge, inputs.retirementAge)} />
             </div>
-            <input
-              type="range"
-              min={Math.min(inputs.currentAge + 5, 75)}
-              max={75}
-              step={1}
-              value={inputs.retirementAge}
-              onChange={(e) => onFieldChange('retirementAge', parseInt(e.target.value))}
-              className="w-full"
-              style={{
-                accentColor: '#181818',
-                background: `linear-gradient(to right, #181818 0%, #181818 ${((inputs.retirementAge - (inputs.currentAge + 5)) / (75 - (inputs.currentAge + 5))) * 100}%, #f4f4f5 ${((inputs.retirementAge - (inputs.currentAge + 5)) / (75 - (inputs.currentAge + 5))) * 100}%, #f4f4f5 100%)`,
-                borderRadius: '999px',
-              }}
-            />
-            <div className="flex justify-between text-[10px] text-zinc-300">
-              <span>{inputs.currentAge + 5}</span><span>75</span>
+          ) : (
+            <div className="flex items-center gap-2 py-2 px-3 bg-zinc-50 rounded-lg">
+              <span className="text-xs text-zinc-400">Retire At</span>
+              <span className="text-xs text-zinc-400">: calculated from your savings rate</span>
             </div>
-            <HintLine {...retirementAgeHint(inputs.currentAge, inputs.retirementAge)} />
-          </div>
+          )}
 
           {/* Expected Lifespan slider */}
           <div className="space-y-1.5">
