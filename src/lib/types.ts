@@ -22,8 +22,13 @@ export interface LifeEvent {
   description: string
   icon: string
   costLabel: string
-  extraAnnualCost: (currentAge: number, retirementAge: number) => number
-  corpusReduction: () => number
+  // Annual cost during retirement (e.g., child support, parent care)
+  annualCost: number
+  // How many years the annual cost applies during retirement (capped by lifespan)
+  // 0 means no recurring cost
+  annualCostYears: number
+  // One-time cost taken out of the corpus at retirement (e.g., home purchase)
+  corpusReduction: number
 }
 
 export interface ScenarioResult {

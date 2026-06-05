@@ -36,7 +36,10 @@ export default function RetirementSnapshot({ outputs, inputs, mode }: Props) {
   const additionalRetireAge = onTrackAge !== null ? onTrackAge : null
   const retireLater = additionalRetireAge !== null ? additionalRetireAge - retirementAge : null
 
-  const isImpossiblePlan = !isCovered && inputs.monthlyIncome > 0 && additionalSIPNeeded > inputs.monthlyIncome
+  // Plan is impossible if user can't afford the additional SIP from their disposable income.
+  // Disposable = take-home minus current expenses minus current SIP.
+  const disposableIncome = Math.max(inputs.monthlyIncome - monthlyExpenses - monthlySIP, 0)
+  const isImpossiblePlan = !isCovered && inputs.monthlyIncome > 0 && additionalSIPNeeded > disposableIncome
   const isImmediateDepletion = projectedCorpus > 0 && lastsUntilAge <= retirementAge + 1
 
   // Human-readable framing
@@ -196,9 +199,9 @@ export default function RetirementSnapshot({ outputs, inputs, mode }: Props) {
         <div className="pl-4 pr-4 py-3 rounded-r-xl border-l-4 border-[#dc2626] bg-[#dc2626]/5">
           <p className="text-sm font-semibold text-[#dc2626]">This goal isn't reachable with your current income</p>
           <p className="text-xs text-zinc-600 mt-1">
-            To close the gap in time, you'd need to invest {formatMonthly(additionalSIPNeeded)}/month -
-            which is more than your entire take-home pay. The most realistic options are to retire a few years later,
-            move to a lower-cost city, or plan for a more modest monthly budget in retirement.
+            Closing the gap requires investing an extra {formatMonthly(additionalSIPNeeded)} every month, but you only
+            have {formatMonthly(disposableIncome)} left after your current expenses and savings.
+            More realistic options: retire a few years later, move to a lower-cost city, or plan for a smaller monthly budget in retirement.
           </p>
         </div>
       )}

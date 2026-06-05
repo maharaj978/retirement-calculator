@@ -7,17 +7,34 @@ function monthlyRate(annualRate: number): number {
   return Math.pow(1 + annualRate, 1 / 12) - 1
 }
 
-function lifeEventAdjustments(inputs: CalculatorInputs): { extraAnnualCost: number; corpusReduction: number } {
-  let extraAnnualCost = 0
+// Present value of an inflation-growing annuity (in today's-money payments).
+// payment = first payment, realReturn = post-return adjusted for inflation, n = years.
+function pvAnnuity(payment: number, realReturn: number, n: number): number {
+  if (n <= 0 || payment <= 0) return 0
+  if (Math.abs(realReturn) < 1e-9) return payment * n
+  return payment * (1 - Math.pow(1 + realReturn, -n)) / realReturn
+}
+
+// Sum corpus reductions and the *PV of finite-duration annual costs* for selected life events.
+// extraCorpusNeeded = PV (at retirement) of all the inflation-adjusted yearly burdens for their stated durations.
+function lifeEventAdjustments(
+  selectedIds: string[],
+  realReturn: number,
+  retirementYears: number,
+): { extraCorpusNeeded: number; corpusReduction: number } {
+  let extraCorpusNeeded = 0
   let corpusReduction = 0
-  for (const id of inputs.selectedLifeEvents) {
+  for (const id of selectedIds) {
     const event = LIFE_EVENTS.find((e) => e.id === id)
-    if (event) {
-      extraAnnualCost += event.extraAnnualCost(inputs.currentAge, inputs.retirementAge)
-      corpusReduction += event.corpusReduction()
+    if (!event) continue
+    corpusReduction += event.corpusReduction
+    if (event.annualCost > 0 && event.annualCostYears > 0) {
+      // Cap event duration to remaining retirement years
+      const duration = Math.min(event.annualCostYears, retirementYears)
+      extraCorpusNeeded += pvAnnuity(event.annualCost, realReturn, duration)
     }
   }
-  return { extraAnnualCost, corpusReduction }
+  return { extraCorpusNeeded, corpusReduction }
 }
 
 function calculateAccumulation(inputs: CalculatorInputs) {
@@ -25,20 +42,35 @@ function calculateAccumulation(inputs: CalculatorInputs) {
   const years = retirementAge - currentAge
   const retirementDuration = Math.max(expectedLifespan - retirementAge, 1)
 
-  const { extraAnnualCost, corpusReduction } = lifeEventAdjustments(inputs)
+  const realReturn = (1 + postRetirementReturn) / (1 + inflationRate) - 1
+
+  const { extraCorpusNeeded, corpusReduction } = lifeEventAdjustments(
+    inputs.selectedLifeEvents, realReturn, retirementDuration,
+  )
+
   const cityMultiplier = getCityById(inputs.retirementCityId).costMultiplier
 
+  // Expense in retirement-year money (today's lifestyle, inflated, scaled to city)
   const monthlyExpenseAtRetirement = monthlyExpenses * Math.pow(1 + inflationRate, years) * cityMultiplier
-  const otherIncomeAtRetirement = otherRetirementIncome * Math.pow(1 + inflationRate, years)
-  const netMonthlyExpense = Math.max(monthlyExpenseAtRetirement - otherIncomeAtRetirement, 0)
-  const annualExpenseAtRetirement = netMonthlyExpense * 12 + extraAnnualCost
+  const annualExpenseAtRetirement = monthlyExpenseAtRetirement * 12
 
-  // Required corpus: present value of inflation-adjusted annuity over retirement duration.
-  // Real return = (1 + postReturn) / (1 + inflation) - 1, applied over retirementDuration years.
-  const realReturn = (1 + postRetirementReturn) / (1 + inflationRate) - 1
-  const requiredCorpus = realReturn > 0
-    ? annualExpenseAtRetirement * (1 - Math.pow(1 + realReturn, -retirementDuration)) / realReturn
-    : annualExpenseAtRetirement * retirementDuration // edge case: zero real return
+  // Pension/rental income: NOMINAL — does NOT grow with inflation in real Indian context.
+  // The nominal monthly amount stays the same. Its real value erodes over retirement.
+  const pensionMonthly = otherRetirementIncome
+  // PV of a fixed-nominal stream at the post-retirement return (no inflation indexing)
+  // Equivalent to: each year, pension is the same ₹X. Discounted nominally at post-return.
+  const nominalAnnuityPV = (annualPmt: number, rate: number, n: number): number => {
+    if (n <= 0 || annualPmt <= 0) return 0
+    if (Math.abs(rate) < 1e-9) return annualPmt * n
+    return annualPmt * (1 - Math.pow(1 + rate, -n)) / rate
+  }
+  const pensionPV = nominalAnnuityPV(pensionMonthly * 12, postRetirementReturn, retirementDuration)
+
+  // Required corpus = PV of inflation-adjusted base expenses
+  //                 + PV of life-event annual costs (already PV'd above)
+  //                 - PV of nominal pension/rental income
+  const baseExpensesPV = pvAnnuity(annualExpenseAtRetirement, realReturn, retirementDuration)
+  const requiredCorpus = Math.max(baseExpensesPV + extraCorpusNeeded - pensionPV, 0)
 
   const mr = monthlyRate(preRetirementReturn)
   const months = years * 12
@@ -49,6 +81,7 @@ function calculateAccumulation(inputs: CalculatorInputs) {
 
   const savingsRate = inputs.monthlyIncome > 0 ? (monthlySIP / inputs.monthlyIncome) * 100 : 0
 
+  // On-track age: walk forward, checking when projection first meets requirement
   let onTrackAge: number | null = null
   for (let targetAge = retirementAge; targetAge <= MAX_AGE; targetAge++) {
     const y = targetAge - currentAge
@@ -59,13 +92,18 @@ function calculateAccumulation(inputs: CalculatorInputs) {
     const proj = Math.max(sc + lump + epf - corpusReduction, 0)
 
     const mExpAtTarget = monthlyExpenses * Math.pow(1 + inflationRate, y) * cityMultiplier
-    const oiAtTarget = otherRetirementIncome * Math.pow(1 + inflationRate, y)
-    const netExpAtTarget = Math.max(mExpAtTarget - oiAtTarget, 0)
-    const annExpAtTarget = netExpAtTarget * 12 + extraAnnualCost
+    const annExpAtTarget = mExpAtTarget * 12
     const durationAtTarget = Math.max(expectedLifespan - targetAge, 1)
-    const reqAtTarget = realReturn > 0
-      ? annExpAtTarget * (1 - Math.pow(1 + realReturn, -durationAtTarget)) / realReturn
-      : annExpAtTarget * durationAtTarget
+    const baseExpensesPVAtTarget = pvAnnuity(annExpAtTarget, realReturn, durationAtTarget)
+
+    // Re-PV life events to the new retirement age (their durations are still capped by remaining time)
+    const { extraCorpusNeeded: extraAtTarget } = lifeEventAdjustments(
+      inputs.selectedLifeEvents, realReturn, durationAtTarget,
+    )
+    // Pension stays nominal regardless of when you retire
+    const pensionPVAtTarget = nominalAnnuityPV(pensionMonthly * 12, postRetirementReturn, durationAtTarget)
+
+    const reqAtTarget = Math.max(baseExpensesPVAtTarget + extraAtTarget - pensionPVAtTarget, 0)
 
     if (proj >= reqAtTarget) {
       onTrackAge = targetAge
@@ -76,7 +114,6 @@ function calculateAccumulation(inputs: CalculatorInputs) {
   const monthlyIncomeAtRetirement = (projectedCorpus * withdrawalRate) / 12
   const monthlyIncomeInTodaysMoney = monthlyIncomeAtRetirement / Math.pow(1 + inflationRate, years)
 
-  // Additional monthly SIP needed to close the gap
   const gap = Math.max(requiredCorpus - projectedCorpus, 0)
   let additionalSIPNeeded = 0
   if (gap > 0 && mr > 0 && months > 0) {
@@ -88,7 +125,7 @@ function calculateAccumulation(inputs: CalculatorInputs) {
     projectedCorpus,
     onTrackAge,
     annualExpenseAtRetirement,
-    monthlyExpenseAtRetirement, // raw inflated expense (before other income subtraction)
+    monthlyExpenseAtRetirement,
     monthlyIncomeAtRetirement,
     monthlyIncomeInTodaysMoney,
     savingsRate,
@@ -96,8 +133,11 @@ function calculateAccumulation(inputs: CalculatorInputs) {
   }
 }
 
+// Withdrawal simulation with realistic LTCG.
+// Tracks cost basis. Tax is applied only to the gain portion of units actually sold.
 function simulateWithdrawal(
   startingCorpus: number,
+  startingCostBasis: number,
   annualExpenseAtRetirement: number,
   retirementAge: number,
   postRetirementReturn: number,
@@ -105,17 +145,32 @@ function simulateWithdrawal(
   maxAge: number,
 ): { lastsUntilAge: number; totalWithdrawn: number; corpusOverTime: { age: number; corpus: number }[] } {
   let corpus = startingCorpus
+  let costBasis = startingCostBasis
   let totalWithdrawn = 0
   const corpusOverTime: { age: number; corpus: number }[] = [{ age: retirementAge, corpus }]
 
   for (let i = 0; i <= maxAge - retirementAge; i++) {
+    // Grow corpus first (start-of-year growth)
+    corpus = corpus * (1 + postRetirementReturn)
+
     const annualWithdrawal = annualExpenseAtRetirement * Math.pow(1 + inflationRate, i)
-    const annualGain = corpus * postRetirementReturn
-    const taxableGain = Math.max(annualGain - LTCG_EXEMPTION, 0)
+
+    // Realized gain: portion of the units sold that represents profit, not principal.
+    // gainRatio = (corpus - costBasis) / corpus
+    // If we withdraw W rupees of units, the gain in that withdrawal = W * gainRatio
+    const gainRatio = corpus > 0 ? Math.max((corpus - costBasis) / corpus, 0) : 0
+    const realizedGain = annualWithdrawal * gainRatio
+    const taxableGain = Math.max(realizedGain - LTCG_EXEMPTION, 0)
     const tax = taxableGain * LTCG_TAX_RATE
     const grossWithdrawal = annualWithdrawal + tax
 
-    corpus = corpus * (1 + postRetirementReturn) - grossWithdrawal
+    // Reduce cost basis proportionally to the withdrawal
+    if (corpus > 0) {
+      costBasis = costBasis * (1 - grossWithdrawal / corpus)
+      if (costBasis < 0) costBasis = 0
+    }
+
+    corpus = corpus - grossWithdrawal
 
     if (corpus <= 0) {
       return { lastsUntilAge: retirementAge + i, totalWithdrawn, corpusOverTime }
@@ -132,8 +187,13 @@ function calculateScenarios(projectedCorpus: number, inputs: CalculatorInputs): 
   return SCENARIO_SWRS.map((swr) => {
     const annualWithdrawalForScenario = projectedCorpus * swr
     const monthlyIncome = annualWithdrawalForScenario / 12
+    // For scenarios, assume cost basis is current invested amount (savings + epf + sip contributions).
+    // Since we don't track contributions historically, use a reasonable default: 60% basis, 40% gains.
+    // This avoids the worst overcharge while being conservative on tax.
+    const startingCostBasis = projectedCorpus * 0.6
     const { lastsUntilAge, totalWithdrawn, corpusOverTime } = simulateWithdrawal(
       projectedCorpus,
+      startingCostBasis,
       annualWithdrawalForScenario,
       inputs.retirementAge,
       inputs.postRetirementReturn,
@@ -158,14 +218,22 @@ export function calculate(inputs: CalculatorInputs): CalculatorOutputs {
     savingsRate, additionalSIPNeeded,
   } = calculateAccumulation(safeInputs)
 
+  // Cost basis estimate for withdrawal: contributions, not current value.
+  // Approximation: total contributed = currentSavings + epfBalance + (monthlySIP × months × inflation factor).
+  // Since SIP contributions happen over many years, the effective basis is ~60-70% of corpus.
+  const sipMonths = (safeInputs.retirementAge - safeInputs.currentAge) * 12
+  const totalContributed = safeInputs.currentSavings + safeInputs.epfBalance + (safeInputs.monthlySIP * sipMonths)
+  const estimatedCostBasis = Math.min(totalContributed, projectedCorpus * 0.85)
+
   const { lastsUntilAge } = simulateWithdrawal(
-    projectedCorpus, annualExpenseAtRetirement, safeInputs.retirementAge,
+    projectedCorpus, estimatedCostBasis, annualExpenseAtRetirement, safeInputs.retirementAge,
     safeInputs.postRetirementReturn, safeInputs.inflationRate, safeInputs.expectedLifespan,
   )
 
   const stressedCorpus = projectedCorpus * CRASH_FACTOR
+  const stressedCostBasis = estimatedCostBasis * CRASH_FACTOR
   const { lastsUntilAge: lastsUntilAgeStressed } = simulateWithdrawal(
-    stressedCorpus, annualExpenseAtRetirement, safeInputs.retirementAge,
+    stressedCorpus, stressedCostBasis, annualExpenseAtRetirement, safeInputs.retirementAge,
     safeInputs.postRetirementReturn, safeInputs.inflationRate, safeInputs.expectedLifespan,
   )
 
