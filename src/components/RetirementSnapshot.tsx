@@ -28,7 +28,6 @@ export default function RetirementSnapshot({ outputs, inputs, mode }: Props) {
   const { retirementAge, expectedLifespan, monthlyExpenses, monthlySIP, inflationRate, currentAge } = inputs
 
   const retirementYears = expectedLifespan - retirementAge
-  const gap = Math.max(requiredCorpus - projectedCorpus, 0)
   const isCovered = projectedCorpus >= requiredCorpus
   const fillPct = requiredCorpus > 0 ? Math.min((projectedCorpus / requiredCorpus) * 100, 100) : 100
   const barColor = isCovered ? 'bg-[#16a34a]' : fillPct >= 70 ? 'bg-[#d97706]' : 'bg-[#dc2626]'
@@ -52,7 +51,12 @@ export default function RetirementSnapshot({ outputs, inputs, mode }: Props) {
     'just getting started'
 
   const yearsToRetirement = retirementAge - currentAge
-  const expensesAtRetirementMonthly = monthlyExpenses * Math.pow(1 + inflationRate, yearsToRetirement)
+
+  // Today's-money equivalents — what the corpus is worth in current buying power
+  const inflationFactor = Math.pow(1 + inflationRate, yearsToRetirement)
+  const requiredCorpusToday = requiredCorpus / inflationFactor
+  const projectedCorpusToday = projectedCorpus / inflationFactor
+  const gapToday = Math.max(requiredCorpusToday - projectedCorpusToday, 0)
 
   return (
     <div className="bg-white rounded-xl border border-zinc-200 p-6 space-y-6">
@@ -122,26 +126,29 @@ export default function RetirementSnapshot({ outputs, inputs, mode }: Props) {
 
             <p className="text-sm text-zinc-600 leading-relaxed">
               To stop working at <span className="font-semibold text-[#181818]">{retirementAge}</span> and
-              live comfortably until <span className="font-semibold text-[#181818]">{expectedLifespan}</span>, you
-              need to have saved:
+              live comfortably until <span className="font-semibold text-[#181818]">{expectedLifespan}</span>,
+              you need savings worth:
             </p>
 
-            <p className="text-3xl font-bold text-[#181818] mt-2 mb-1 tabular-nums">{formatRs(requiredCorpus)}</p>
-
-            <p className="text-sm text-zinc-500 leading-relaxed">
-              That pays you{' '}
-              <span className="font-semibold text-[#181818]">{formatMonthly(monthlyIncomeInTodaysMoney)}</span>{' '}
-              every month, the same buying power as your{' '}
-              <span className="font-semibold text-[#181818]">{formatMonthly(monthlyExpenses)} today</span>,
-              adjusted for rising prices, for {retirementYears} years.
+            <p className="text-3xl font-bold text-[#181818] mt-2 mb-0.5 tabular-nums">
+              {formatRs(requiredCorpusToday)}
+              <span className="text-base font-medium text-zinc-500"> in today's money</span>
             </p>
 
             {yearsToRetirement > 0 && (
-              <p className="text-xs text-zinc-400 mt-1.5">
-                By age {retirementAge}, prices will have risen enough that {formatMonthly(monthlyExpenses)}/mo today
-                will cost {formatMonthly(expensesAtRetirementMonthly)}, that's {Math.round(inflationRate * 100)}% inflation every year for {yearsToRetirement} years.
+              <p className="text-xs text-zinc-500">
+                By age {retirementAge} that's <span className="font-semibold text-zinc-700">{formatRs(requiredCorpus)}</span> in actual rupees,
+                because {Math.round(inflationRate * 100)}% inflation makes future rupees buy less.
               </p>
             )}
+
+            <p className="text-sm text-zinc-500 leading-relaxed mt-3">
+              That pays you{' '}
+              <span className="font-semibold text-[#181818]">{formatMonthly(monthlyIncomeInTodaysMoney)}</span>{' '}
+              every month — the same buying power as your{' '}
+              <span className="font-semibold text-[#181818]">{formatMonthly(monthlyExpenses)} today</span>,
+              for {retirementYears} years.
+            </p>
           </div>
 
           <div>
@@ -149,7 +156,7 @@ export default function RetirementSnapshot({ outputs, inputs, mode }: Props) {
 
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs text-zinc-400">₹0</span>
-              <span className="text-xs text-zinc-400">{formatRs(requiredCorpus)} goal</span>
+              <span className="text-xs text-zinc-400">{formatRs(requiredCorpusToday)} goal</span>
             </div>
             <div className="relative h-2.5 bg-zinc-100 rounded-full overflow-hidden">
               <div
@@ -162,15 +169,15 @@ export default function RetirementSnapshot({ outputs, inputs, mode }: Props) {
               {isCovered ? (
                 <p className="text-sm leading-relaxed text-zinc-700">
                   At your current savings rate, you're projected to reach{' '}
-                  <span className="font-semibold text-[#16a34a]">{formatRs(projectedCorpus)}</span> by age {retirementAge} -
+                  <span className="font-semibold text-[#16a34a]">{formatRs(projectedCorpusToday)}</span> in today's money -
                   that's <span className="font-semibold text-[#16a34a]">more than you need</span>. You're on track.
                 </p>
               ) : (
                 <p className="text-sm leading-relaxed text-zinc-700">
                   At your current savings rate, you'll reach{' '}
-                  <span className="font-semibold text-[#181818]">{formatRs(projectedCorpus)}</span> by age {retirementAge} -
+                  <span className="font-semibold text-[#181818]">{formatRs(projectedCorpusToday)}</span> in today's money -
                   you're <span className="font-semibold text-[#181818]">{coverageLabel}</span>.
-                  You're still <span className="font-semibold text-[#dc2626]">{formatRs(gap)} short</span> of your goal.
+                  You're still <span className="font-semibold text-[#dc2626]">{formatRs(gapToday)} short</span> of your goal.
                 </p>
               )}
 
